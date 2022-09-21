@@ -65,6 +65,8 @@ void exposeResidualContactFrictionCone() {
            ":return residual data.")
       .add_property("id", &ResidualModelContactFrictionCone::get_id, &ResidualModelContactFrictionCone::set_id,
                     "reference frame id")
+      .add_property("parent_id", &ResidualModelContactFrictionCone::get_parent_id,
+                        "parent frame id")
       .add_property(
           "reference",
           bp::make_function(&ResidualModelContactFrictionCone::get_reference, bp::return_internal_reference<>()),
@@ -83,7 +85,22 @@ void exposeResidualContactFrictionCone() {
           "contact",
           bp::make_getter(&ResidualDataContactFrictionCone::contact, bp::return_value_policy<bp::return_by_value>()),
           bp::make_setter(&ResidualDataContactFrictionCone::contact),
-          "contact data associated with the current residual");
+          "contact data associated with the current residual")
+
+      .add_property(
+        "oJi",
+        bp::make_getter(&ResidualDataContactFrictionCone::oJi, bp::return_value_policy<bp::return_by_value>()),
+      "Global Jacobian of the frame associated with the current residual")
+
+      .add_property(
+        "oMi",
+        bp::make_getter(&ResidualDataContactFrictionCone::oMi, bp::return_value_policy<bp::return_by_value>()),
+      "Pose of joint associated with the current residual")
+
+       .add_property(
+        "oF",
+        bp::make_getter(&ResidualDataContactFrictionCone::oF, bp::return_value_policy<bp::return_by_value>()),
+       "Force associated with the current residual");
 }
 
 }  // namespace python

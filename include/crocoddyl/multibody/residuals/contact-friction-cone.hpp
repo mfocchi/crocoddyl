@@ -66,7 +66,6 @@ class ResidualModelContactFrictionConeTpl : public ResidualModelAbstractTpl<_Sca
   typedef typename MathBase::VectorXs VectorXs;
   typedef typename MathBase::MatrixXs MatrixXs;
   typedef typename MathBase::MatrixX3s MatrixX3s;
-
   /**
    * @brief Initialize the contact friction cone residual model
    *
@@ -154,6 +153,11 @@ class ResidualModelContactFrictionConeTpl : public ResidualModelAbstractTpl<_Sca
   void set_id(const pinocchio::FrameIndex id);
 
   /**
+   * @brief Return the parent frame id
+   */
+  pinocchio::FrameIndex get_parent_id() const;
+
+  /**
    * @brief Modify the reference contact friction cone
    */
   void set_reference(const FrictionCone& reference);
@@ -173,6 +177,8 @@ class ResidualModelContactFrictionConeTpl : public ResidualModelAbstractTpl<_Sca
  private:
   pinocchio::FrameIndex id_;  //!< Reference frame id
   FrictionCone fref_;         //!< Reference contact friction cone
+  boost::shared_ptr<typename StateMultibody::PinocchioModel> pin_model_;
+  pinocchio::JointIndex parent_id_;
 };
 
 template <typename _Scalar>
@@ -187,10 +193,15 @@ struct ResidualDataContactFrictionConeTpl : public ResidualDataAbstractTpl<_Scal
   typedef ImpulseModelMultipleTpl<Scalar> ImpulseModelMultiple;
   typedef StateMultibodyTpl<Scalar> StateMultibody;
   typedef typename MathBase::MatrixXs MatrixXs;
+  typedef typename MathBase::Matrix3xs Matrix3xs;
+  typedef typename MathBase::Matrix6xs Matrix6xs;
 
   template <template <typename Scalar> class Model>
   ResidualDataContactFrictionConeTpl(Model<Scalar>* const model, DataCollectorAbstract* const data)
-      : Base(model, data) {
+      : Base(model, data),
+        oJi(6, model->get_state()->get_nv()),
+        Rq(model->get_nr(), model->get_state()->get_nv()),
+        Rv(model->get_nr(), model->get_state()->get_nv()){
     contact_type = ContactUndefined;
     // Check that proper shared data has been passed
     bool is_contact = true;
@@ -203,6 +214,19 @@ struct ResidualDataContactFrictionConeTpl : public ResidualDataAbstractTpl<_Scal
     if (d2 != NULL) {
       is_contact = false;
     }
+
+    // Check that proper shared data has been passed
+    DataCollectorMultibodyTpl<Scalar>* d = dynamic_cast<DataCollectorMultibodyTpl<Scalar>*>(shared);
+    if (d == NULL) {
+      throw_pretty("Invalid argument: the shared data should be derived from DataCollectorMultibody");
+    }
+
+    // Avoids data casting at runtime
+    pinocchio = d->pinocchio;
+
+    oJi.setZero();
+    Rq.setZero();
+    Rv.setZero();
 
     // Avoids data casting at runtime
     const pinocchio::FrameIndex id = model->get_id();
@@ -268,10 +292,19 @@ struct ResidualDataContactFrictionConeTpl : public ResidualDataAbstractTpl<_Scal
 
   boost::shared_ptr<ForceDataAbstractTpl<Scalar> > contact;  //!< Contact force data
   ContactType contact_type;                                  //!< Type of contact (2D / 3D / 6D)
+  pinocchio::DataTpl<Scalar>* pinocchio;  //!< Pinocchio data
   using Base::r;
   using Base::Ru;
   using Base::Rx;
   using Base::shared;
+  //private:
+  pinocchio::SE3Tpl<double, 0> oMi;       //!< Pose of local joint frame wrt global frame
+  Matrix6xs oJi;                          //!< Global Jacobian of the local joint frame
+  pinocchio::ForceTpl<Scalar> oF;         //!< Force in global frame
+  MatrixXs Rq;                            //!< Jacobian of the residual vector with respect the config vector
+  MatrixXs Rv;                            //!< Jacobian of the residual vector with respect the velocity vector
+
+  Matrix3xs fskew;                        //!< Skew-symmetric matric of contact force
 };
 
 }  // namespace crocoddyl
