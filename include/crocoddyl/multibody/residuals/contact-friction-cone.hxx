@@ -51,10 +51,10 @@ void ResidualModelContactFrictionConeTpl<Scalar>::calc(const boost::shared_ptr<R
   d->oF = d->pinocchio->oMi[parent_id_].actInv(d->contact->f);
 
   // new:
-  // data->r.noalias() = fref_.get_A() * d->oF.linear();
+  data->r.noalias() = fref_.get_A() * d->oF.linear();
 
   // original:
-  data->r.noalias() = fref_.get_A() * d->contact->jMf.actInv(d->contact->f).linear();
+  //data->r.noalias() = fref_.get_A() * d->contact->jMf.actInv(d->contact->f).linear();
 }
 
 template <typename Scalar>
